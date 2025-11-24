@@ -20,6 +20,9 @@ struct flame_point_t : tf_point_t
 {
 	Vector m_vecAttackerVelocity = vec3_origin;
 	Vector m_vecInitialPos = vec3_origin;
+#ifdef GAME_DLL
+	mutable CUtlVector<EHANDLE> m_hEntitiesBurnt;
+#endif
 };
 
 #define WATERFALL_FLAMETHROWER_STREAMS 5
@@ -90,6 +93,7 @@ protected:
 
 #ifdef GAME_DLL
 	virtual bool ShouldCollide( CBaseEntity *pEnt ) const OVERRIDE;
+	virtual bool ShouldCollideWithPoint( CBaseEntity *pEnt, const tf_point_t *pPoint ) const OVERRIDE;
 	virtual void OnCollide( CBaseEntity *pEnt, int iPointIndex ) OVERRIDE;
 #endif // GAME_DLL
 

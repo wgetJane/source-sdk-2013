@@ -70,6 +70,10 @@ const float	tf_flamethrower_damage_per_tick = 13.f;
 ConVar  tf_flamethrower_burstammo("tf_flamethrower_burstammo", "20", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY | FCVAR_REPLICATED, "How much ammo does the air burst use per shot." );
 ConVar  tf_flamethrower_flametime("tf_flamethrower_flametime", "0.5", FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY | FCVAR_REPLICATED, "Time to live of flame damage entities." );
 
+const float	tf_flamethrower_old_flame_fire_delay = 0.04f;
+const float	tf_flamethrower_old_damage_per_tick = 170.f * tf_flamethrower_old_flame_fire_delay * 1.2f;
+ConVar	tf_flamethrower_olddmg("tf_flamethrower_olddmg", "1", FCVAR_REPLICATED );
+
 
 // If we're shipping this it needs to be better hooked with flame manager -- right now we just spawn 5 managers for
 // prototyping
@@ -819,9 +823,11 @@ void CTFFlameThrower::PrimaryAttack()
 	C_CTF_GameStats.Event_PlayerFiredWeapon( pOwner, IsCurrentAttackACrit() );
 #endif
 
+	bool bOldDmgCalc = tf_flamethrower_olddmg.GetBool();
+
 	float flFiringInterval = m_pWeaponInfo->GetWeaponData( m_iWeaponMode ).m_flTimeFireDelay;
 	{
-		flFiringInterval = tf_flamethrower_new_flame_fire_delay;
+		flFiringInterval = bOldDmgCalc ? tf_flamethrower_old_flame_fire_delay : tf_flamethrower_new_flame_fire_delay;
 	}
 
 	// Don't attack if we're underwater
@@ -860,7 +866,7 @@ void CTFFlameThrower::PrimaryAttack()
 		int iDamagePerSec = m_pWeaponInfo->GetWeaponData( m_iWeaponMode ).m_nDamage;
 		float flDamage = (float)iDamagePerSec * flFiringInterval;
 		{
-			flDamage = tf_flamethrower_damage_per_tick;
+			flDamage = bOldDmgCalc ? tf_flamethrower_old_damage_per_tick : tf_flamethrower_damage_per_tick;
 		}
 #ifdef WATERFALL_FLAMETHROWER_TEST
 		int iWaterfallMode = 0;
@@ -914,7 +920,7 @@ void CTFFlameThrower::PrimaryAttack()
 	// and cause ammo pickup indicators to appear
 	float flAmmoPerSecond = TF_FLAMETHROWER_AMMO_PER_SECOND_PRIMARY_ATTACK;
 	CALL_ATTRIB_HOOK_FLOAT( flAmmoPerSecond, mult_flame_ammopersec );
-	m_flAmmoUseRemainder += flAmmoPerSecond * flFiringInterval;
+	m_flAmmoUseRemainder += flAmmoPerSecond * tf_flamethrower_new_flame_fire_delay;
 	// take the integer portion of the ammo use accumulator and subtract it from player's ammo count; any fractional amount of ammo use
 	// remains and will get used in the next shot
 	int iAmmoToSubtract = (int) m_flAmmoUseRemainder;

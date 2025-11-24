@@ -42,6 +42,8 @@ ConVar tf_flame_waterfall_spread( "tf_flame_waterfall_spread", "40", FCVAR_REPLI
 extern ConVar tf_debug_flamethrower;
 extern ConVar tf_flamethrower_boxsize;
 
+extern ConVar tf_flamethrower_olddmg;
+
 #ifdef CLIENT_DLL
 float tf_flame_particle_min_density = 0.01f;
 
@@ -512,8 +514,10 @@ float CTFFlameManager::GetFlameDamageScale( const tf_point_t* pPoint, CTFPlayer 
 	
 	float flDamageScale = 1.f;
 
+	bool bOldDmgCalc = tf_flamethrower_olddmg.GetBool();
+
 	// Distance-based calculation is what we shipped with
-	if ( tf_flame_dmg_mode_dist.GetBool() )
+	if ( bOldDmgCalc || tf_flame_dmg_mode_dist.GetBool() )
 	{
 		float flDistSqr = pFlame->m_vecPosition.DistToSqr( pFlame->m_vecInitialPos );
 		float flMaxDamageDistSqr = Square( tf_flame_maxdamagedist );
@@ -527,6 +531,9 @@ float CTFFlameManager::GetFlameDamageScale( const tf_point_t* pPoint, CTFPlayer 
 		float flLifeMax = pFlame->m_flLifeTime * tf_flame_min_damage_scale_time_cap;
 		flDamageScale = RemapValClamped( flTimeAlive, 0.f, flLifeMax, 1.f, tf_flame_min_damage_scale_time );
 	}
+
+	if ( bOldDmgCalc )
+		return flDamageScale;
 
 	if ( pTFTarget 
 		)
@@ -670,6 +677,19 @@ bool CTFFlameManager::ShouldCollide( CBaseEntity *pEnt ) const
 	return true;
 }
 
+bool CTFFlameManager::ShouldCollideWithPoint( CBaseEntity *pEnt, const tf_point_t *pPoint ) const
+{
+	if ( tf_flamethrower_olddmg.GetBool() )
+	{
+		const flame_point_t* pFlame = static_cast< const flame_point_t * >( pPoint );
+
+		if ( pFlame->m_hEntitiesBurnt.Find( pEnt ) != pFlame->m_hEntitiesBurnt.InvalidIndex() )
+			return false;
+	}
+
+	return true;
+}
+
 void CTFFlameManager::OnCollide( CBaseEntity *pEnt, int iPointIndex )
 {
 	tmZone( TELEMETRY_LEVEL0, TMZF_NONE, "%s", __FUNCTION__ );
@@ -691,9 +711,19 @@ void CTFFlameManager::OnCollide( CBaseEntity *pEnt, int iPointIndex )
 		m_mapEntitiesBurnt[iEntIndex].m_flHeatIndex += flAmount;
 	}
 
-	// if we already burn this entity, check if we can burn it again
-	if ( !BCanBurnEntityThisFrame( pEnt ) )
-		return;
+	if ( tf_flamethrower_olddmg.GetBool() )
+	{
+		if ( pFlame->m_hEntitiesBurnt.Find( pEnt ) != pFlame->m_hEntitiesBurnt.InvalidIndex() )
+			return;
+
+		pFlame->m_hEntitiesBurnt.AddToTail( pEnt );
+	}
+	else
+	{
+		// if we already burn this entity, check if we can burn it again
+		if ( !BCanBurnEntityThisFrame( pEnt ) )
+			return;
+	}
 
 	if ( pEnt->IsPlayer() && pEnt->InSameTeam( pAttacker ) )
 	{

@@ -121,7 +121,7 @@ void CTFPointManager::Touch( CBaseEntity *pOther )
 
 		trace_t trEnt;
 		enginetrace->ClipRayToEntity( ray, MASK_SOLID | CONTENTS_HITBOX, pOther, &trEnt );
-		if ( trEnt.DidHit() )
+		if ( trEnt.DidHit() && ShouldCollideWithPoint( pOther, pPoint ) )
 		{
 			OnCollide( pOther, iPoint );
 

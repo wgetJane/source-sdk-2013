@@ -68,6 +68,7 @@ protected:
 
 #ifdef GAME_DLL
 	virtual bool ShouldCollide( CBaseEntity *pEnt ) const { return true; }
+	virtual bool ShouldCollideWithPoint( CBaseEntity *pEnt, const tf_point_t *pPoint ) const { return true; }
 	virtual void OnCollide( CBaseEntity *pEnt, int nPointIndex ) {};
 #endif // GAME_DLL
 
